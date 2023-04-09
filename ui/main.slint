@@ -1,0 +1,61 @@
+import {Button, AboutSlint} from "std-widgets.slint";
+
+export component Toggle inherits Rectangle {
+    in property <string> text;
+    in-out property <bool> on;
+    callback clicked();
+    HorizontalLayout {
+        spacing: 20px;
+        Rectangle {
+            width: 70px;
+            height: 30px;
+            background: on ? blue : grey;
+            animate background { duration: 2000ms; easing: ease-out; }
+            border-radius: self.height/2;
+            Rectangle {
+                width: self.height;
+                height: parent.height - 4px;
+                x: on ? parent.width - self.width - 2px : 2px;
+                animate x { duration: 2000ms; easing: ease-out; }
+                y: 2px;
+                background: white;
+                border-radius: self.height/2;
+            }
+        }
+        Text { text: root.text; }
+    }
+    TouchArea {
+        clicked => {
+            root.on = !root.on;
+            root.clicked();
+        }
+    }
+}
+
+export component MainUI inherits Window {
+    width: 480px;
+    height: 320px;
+    background: #dcdcdc;
+    callback button-clicked;
+    callback toggle-clicked;
+
+    VerticalLayout {
+        alignment: start;
+        spacing: 20px;
+        padding: 20px;
+        Text {
+            text: "Hello from slint";
+        }
+        Button {
+            text: "Hello";
+            clicked => { root.button-clicked()}
+        }
+        Toggle {
+            text: "Toggle LED";
+        }
+
+        
+
+        AboutSlint {}
+    }
+}
