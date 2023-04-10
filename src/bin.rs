@@ -1,8 +1,10 @@
 #![no_std]
 #![no_main]
 extern crate alloc;
-mod xpt2046;
 
+use board::xpt2046;
+use board::DisplayWrapper;
+use board::MyPlatform;
 use bsp::entry;
 use defmt::*;
 use defmt_rtt as _;
@@ -23,74 +25,20 @@ use bsp::hal::{
 use display_interface_spi::SPIInterface;
 
 // Graphics drawing utilities
-use embedded_graphics::{
-    pixelcolor::raw::RawU16, pixelcolor::Rgb565, prelude::*, primitives::Rectangle,
-};
+use embedded_graphics::{pixelcolor::Rgb565, prelude::*};
 use mipidsi::{self, Builder, HorizontalRefreshOrder, RefreshOrder, VerticalRefreshOrder};
 
 use fugit::RateExtU32;
 
-use alloc::{boxed::Box, rc::Rc};
+use alloc::boxed::Box;
 use embedded_alloc::Heap;
 
 use slint::platform::{
     software_renderer::{MinimalSoftwareWindow, RepaintBufferType},
-    Platform, WindowEvent,
+    WindowEvent,
 };
 
 slint::include_modules!();
-
-struct MyPlatform {
-    window: Rc<MinimalSoftwareWindow>,
-    // optional: some timer device from your device's HAL crate
-    timer: hal::Timer,
-    // ... maybe more devices
-}
-
-impl Platform for MyPlatform {
-    fn create_window_adapter(
-        &self,
-    ) -> Result<Rc<dyn slint::platform::WindowAdapter>, slint::PlatformError> {
-        Ok(self.window.clone())
-    }
-
-    fn duration_since_start(&self) -> core::time::Duration {
-        core::time::Duration::from_micros(self.timer.get_counter().ticks())
-    }
-}
-
-struct DisplayWrapper<'a, T> {
-    display: &'a mut T,
-    line_buffer: &'a mut [slint::platform::software_renderer::Rgb565Pixel],
-}
-impl<T: DrawTarget<Color = embedded_graphics::pixelcolor::Rgb565>>
-    slint::platform::software_renderer::LineBufferProvider for DisplayWrapper<'_, T>
-{
-    type TargetPixel = slint::platform::software_renderer::Rgb565Pixel;
-    fn process_line(
-        &mut self,
-        line: usize,
-        range: core::ops::Range<usize>,
-        render_fn: impl FnOnce(&mut [Self::TargetPixel]),
-    ) {
-        // Render into the line
-        render_fn(&mut self.line_buffer[range.clone()]);
-
-        // Send the line to the screen using DrawTarget::fill_contiguous
-        self.display
-            .fill_contiguous(
-                &Rectangle::new(
-                    Point::new(range.start as _, line as _),
-                    Size::new(range.len() as _, 1),
-                ),
-                self.line_buffer[range]
-                    .iter()
-                    .map(|p| RawU16::new(p.0).into()),
-            )
-            .map_err(drop)
-            .unwrap();
-    }
-}
 
 #[global_allocator]
 static HEAP: Heap = Heap::empty();
